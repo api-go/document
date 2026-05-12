@@ -3,6 +3,7 @@ package office
 import (
 	"bytes"
 	"io"
+	"os"
 	"strings"
 
 	"apigo.cc/go/file"
@@ -17,7 +18,7 @@ type PDF struct {
 // OpenPDF 打开一个 PDF 文档。
 func OpenPDF(filename string) (*PDF, error) {
 	if !file.Exists(filename) {
-		return nil, file.ErrNotExist
+		return nil, os.ErrNotExist
 	}
 	return &PDF{filename: filename}, nil
 }
@@ -43,6 +44,15 @@ func (p *PDF) Text() (string, error) {
 	return b.String(), nil
 }
 
+// ToMarkdown 将 PDF 内容转换为 Markdown 格式。
+func (p *PDF) ToMarkdown() (string, error) {
+	text, err := p.Text()
+	if err != nil {
+		return "", err
+	}
+	return text, nil
+}
+
 // Info 获取 PDF 的元数据。
 func (p *PDF) Info() map[string]any {
 	f, err := pdf.Open(p.filename)
@@ -51,12 +61,14 @@ func (p *PDF) Info() map[string]any {
 	}
 	
 	info := make(map[string]any)
-	// 常见的 PDF 元数据字段
-	fields := []string{"Title", "Author", "Subject", "Keywords", "Creator", "Producer", "CreationDate", "ModDate"}
-	for _, field := range fields {
-		val := f.GetInfo().Get(field)
-		if val != "" {
-			info[strings.ToLower(field)] = val
+	trailer := f.Trailer()
+	infoDict := trailer.Key("Info")
+	if !infoDict.IsNull() {
+		for _, field := range infoDict.Keys() {
+			val := infoDict.Key(field).Text()
+			if val != "" {
+				info[strings.ToLower(field)] = val
+			}
 		}
 	}
 	info["pages"] = f.NumPage()

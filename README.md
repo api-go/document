@@ -1,13 +1,15 @@
 # office
 
-极简、高效的 Go Office 文档处理库，符合 `@go` 设计哲学。支持 Excel、Word (Docx)、PowerPoint (Pptx) 和 PDF 的解析与处理。
+极简、高效的 Go Office 文档处理库，符合 `@go` 设计哲学。支持将 Office 文档与 JSON/Markdown 等通用格式无缝转换，作为 AI 时代的数据桥梁。
 
 ## 特性
 
-- **统一 API**: 提供极简的 `Open`, `Save`, `Text` 等操作。
-- **纯 Go 实现**: 无 CGo 依赖，跨平台支持。
-- **解析与识别**: 支持从 Docx、Pptx 和 PDF 中提取纯文本内容。
-- **Excel 增强**: 自动处理工作表对齐，支持对象列表 (`[]map`) 的直接读写。
+- **统一 API**: 提供极简的 `Open`, `Save`, `ToJSON`, `ToMarkdown` 等操作。
+- **载体转换**: 
+  - **Excel <-> JSON**: 自动将表格映射为对象数组，支持双向转换。
+  - **Docx/Pptx/PDF -> Markdown**: 提取并转化为 AI 友好的 Markdown 格式。
+- **纯 Go 实现**: 无 CGo 依赖，极致的跨平台与部署性能。
+- **Excel 增强**: 自动处理工作表对齐，支持动态列扩展。
 
 ## 快速开始
 
@@ -17,59 +19,39 @@
 go get apigo.cc/go/office
 ```
 
-### Excel 处理
+### Excel <-> JSON (结构化数据载体)
 
 ```go
-// 写入数据
-xls := office.New()
-xls.Set("Sheet1", [][]any{{"Name", "Age"}, {"Alice", 25}}, "A1", "")
-xls.Save("example.xlsx")
+// Excel 转 JSON
+xls, _ := office.Open("data.xlsx")
+jsonStr, _ := xls.ToJSON("Sheet1", "A1", "")
 
-// 读取对象列表
-xls2, _ := office.Open("example.xlsx")
-data, _ := xls2.GetData("Sheet1", "A1", "")
+// JSON 转 Excel
+newXls := office.New()
+newXls.FromJSON("Sheet1", jsonStr, "A1", "")
+newXls.Save("restored.xlsx")
 ```
 
-### Word (Docx) 解析
+### Docx/Pptx/PDF -> Markdown (内容载体)
 
 ```go
+// Word 转 Markdown
 doc, _ := office.OpenDocx("contract.docx")
-text, _ := doc.Text() // 提取全文文本
-fmt.Println(text)
-```
+md, _ := doc.ToMarkdown()
 
-### PowerPoint (Pptx) 解析
-
-```go
-ppt, _ := office.OpenPptx("presentation.pptx")
-text, _ := ppt.Text() // 提取幻灯片全文
-```
-
-### PDF 解析
-
-```go
+// PDF 转 Markdown
 pdf, _ := office.OpenPDF("report.pdf")
-text, _ := pdf.Text() // 提取 PDF 纯文本
-info := pdf.Info()   // 获取页数、作者等元数据
+md, _ := pdf.ToMarkdown()
 ```
 
 ## API 参考
 
-### Excel
-- `New() *Excel`
-- `Open(filename string, password ...string) (*Excel, error)`
-- `Set(sheetName string, table [][]any, start, end string) error`
+### Excel (JSON 转换)
+- `ToJSON(sheetName string, start, end string) (string, error)`
+- `FromJSON(sheetName string, jsonStr string, start, end string) error`
+- `GetData(sheetName string, start, end string) ([]map[string]any, error)`
 - `SetData(sheetName string, data []map[string]any, start, end string) error`
 
-### Word (Docx)
-- `OpenDocx(filename string) (*Docx, error)`
-- `Text() (string, error)`
-
-### PowerPoint (Pptx)
-- `OpenPptx(filename string) (*Pptx, error)`
-- `Text() (string, error)`
-
-### PDF
-- `OpenPDF(filename string) (*PDF, error)`
-- `Text() (string, error)`
-- `Info() map[string]any`
+### Word/PPT/PDF (Markdown 提取)
+- `ToMarkdown() (string, error)`: 将文档内容提取为 Markdown 格式字符串。
+- `Text() (string, error)`: 提取纯文本。

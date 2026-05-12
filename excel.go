@@ -276,6 +276,24 @@ func (xls *Excel) GetData(sheetName string, start, end string) ([]map[string]any
 	return data, nil
 }
 
+// ToJSON 将指定工作表的数据转换为 JSON 字符串。
+func (xls *Excel) ToJSON(sheetName string, start, end string) (string, error) {
+	data, err := xls.GetData(sheetName, start, end)
+	if err != nil {
+		return "", err
+	}
+	return cast.ToJSON(data)
+}
+
+// FromJSON 从 JSON 字符串加载数据到指定工作表。
+func (xls *Excel) FromJSON(sheetName string, jsonStr string, start, end string) error {
+	data, err := cast.FromJSON[[]map[string]any](jsonStr)
+	if err != nil {
+		return err
+	}
+	return xls.SetData(sheetName, data, start, end)
+}
+
 // 辅助方法：获取或创建工作表
 func (xls *Excel) getOrCreateSheet(name string) string {
 	if name == "" {
