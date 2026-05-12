@@ -144,6 +144,19 @@ func TestIDGeneration(t *testing.T) {
 }
 
 // Helper for test assertions
+func BenchmarkExcel_SetData(b *testing.B) {
+	xls := NewExcel()
+	data := make([]map[string]any, 100)
+	for i := 0; i < 100; i++ {
+		data[i] = map[string]any{"ID": i, "Name": "User", "Value": i * 10}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = xls.SetData("Bench", data, "A1", "")
+	}
+}
+
 func castTo[T any](v any) T {
 	var res T
 	if val, ok := v.(T); ok {

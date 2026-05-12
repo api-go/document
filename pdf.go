@@ -2,8 +2,8 @@ package document
 
 import (
 	"bytes"
+	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"apigo.cc/go/cast"
@@ -21,7 +21,7 @@ type PDF struct {
 // OpenPDF 打开一个 PDF 文档。
 func OpenPDF(filename string) (*PDF, error) {
 	if !file.Exists(filename) {
-		return nil, os.ErrNotExist
+		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 	p := &PDF{
 		filename: filename,

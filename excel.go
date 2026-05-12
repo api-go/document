@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"apigo.cc/go/cast"
@@ -278,7 +277,7 @@ func (xls *Excel) getOrCreateSheet(name string) string {
 
 // MakeCellID 生成单元格 ID。
 func MakeCellID(col, row int) string {
-	return MakeColID(col) + strconv.Itoa(row+1)
+	return MakeColID(col) + cast.To[string](row+1)
 }
 
 // MakeColID 生成列 ID。
@@ -307,7 +306,7 @@ func ParseCellID(cell string) (col, row int) {
 		return parseCol(cell), 0
 	}
 	col = parseCol(cell[:numIdx])
-	row, _ = strconv.Atoi(cell[numIdx:])
+	row = cast.To[int](cell[numIdx:])
 	row--
 	if row < 0 {
 		row = 0

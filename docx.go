@@ -1,8 +1,8 @@
 package document
 
 import (
+	"fmt"
 	"io"
-	"os"
 
 	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
@@ -19,7 +19,7 @@ type Docx struct {
 // OpenDocx 打开一个 Word 文档 (.docx)。
 func OpenDocx(filename string) (*Docx, error) {
 	if !file.Exists(filename) {
-		return nil, os.ErrNotExist
+		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 	d := &Docx{
 		filename: filename,

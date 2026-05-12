@@ -1,8 +1,8 @@
 package document
 
 import (
+	"fmt"
 	"io"
-	"os"
 
 	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
@@ -19,7 +19,7 @@ type Pptx struct {
 // OpenPptx 打开一个 PowerPoint 文档 (.pptx)。
 func OpenPptx(filename string) (*Pptx, error) {
 	if !file.Exists(filename) {
-		return nil, os.ErrNotExist
+		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 	p := &Pptx{
 		filename: filename,
