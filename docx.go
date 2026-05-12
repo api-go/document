@@ -1,4 +1,4 @@
-package office
+package document
 
 import (
 	"io"

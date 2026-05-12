@@ -1,4 +1,4 @@
-module apigo.cc/go/office
+module apigo.cc/go/document
 
 go 1.25.0
 
