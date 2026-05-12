@@ -5,29 +5,29 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
 	"github.com/xuri/excelize/v2"
 )
 
-// Excel 封装了 Excel 文件的核心操作，提供极简且高效的 API。
+// Excel 封装了 Excel 文件的核心操作。
 type Excel struct {
 	filename string
 	password string
 	excel    *excelize.File
 }
 
-// New 创建一个新的 Excel 对象。
-func New() *Excel {
+// NewExcel 创建一个新的 Excel 对象。
+func NewExcel() *Excel {
 	return &Excel{
 		excel: excelize.NewFile(),
 	}
 }
 
-// Open 打开一个现有的 Excel 文件。
-// 如果文件不存在，将创建一个新的 Excel 对象。
-func Open(filename string, password ...string) (*Excel, error) {
+// OpenExcel 打开一个现有的 Excel 文件。
+func OpenExcel(filename string, password ...string) (*Excel, error) {
 	pwd := ""
 	if len(password) > 0 {
 		pwd = password[0]
@@ -52,7 +52,6 @@ func Open(filename string, password ...string) (*Excel, error) {
 }
 
 // Save 保存 Excel 文件。
-// 如果提供了 filename，将另存为该文件名。
 func (xls *Excel) Save(filename ...string) error {
 	if len(filename) > 0 && filename[0] != "" {
 		xls.filename = filename[0]
@@ -63,19 +62,51 @@ func (xls *Excel) Save(filename ...string) error {
 	return xls.excel.SaveAs(xls.filename, excelize.Options{Password: xls.password})
 }
 
-// Bytes 将 Excel 内容写入字节切片。
-func (xls *Excel) Bytes() ([]byte, error) {
-	buf, err := xls.excel.WriteToBuffer()
-	if err != nil {
-		return nil, err
+// ToJSON 将第一个工作表的数据转换为 JSON 字符串。
+func (xls *Excel) ToJSON() string {
+	sheets := xls.Sheets()
+	if len(sheets) == 0 {
+		return "[]"
 	}
-	return buf.Bytes(), nil
+	data, _ := xls.GetData(sheets[0], "A1", "")
+	res, _ := cast.ToJSON(data)
+	return res
 }
 
+// ToMarkdown 将第一个工作表的数据转换为 Markdown 表格。
+func (xls *Excel) ToMarkdown() string {
+	sheets := xls.Sheets()
+	if len(sheets) == 0 {
+		return ""
+	}
+	rows, _ := xls.Get(sheets[0], "A1", "")
+	if len(rows) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	for i, row := range rows {
+		sb.WriteString("| ")
+		for _, col := range row {
+			sb.WriteString(cast.To[string](col))
+			sb.WriteString(" | ")
+		}
+		sb.WriteString("\n")
+		if i == 0 {
+			// 分隔线
+			sb.WriteString("|")
+			for range row {
+				sb.WriteString(" --- |")
+			}
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
+}
+
+// --- 基础操作方法 ---
+
 // Set 设置指定单元格范围的值。
-// table: 二维数组，代表行和列。
-// start: 起始单元格 ID（如 "A1"），默认为 "A1"。
-// end: 结束单元格 ID（如 "C3"），用于限制写入范围。
 func (xls *Excel) Set(sheetName string, table [][]any, start, end string) error {
 	sheet := xls.getOrCreateSheet(sheetName)
 	startX, startY := ParseCellID(start)
@@ -127,7 +158,6 @@ func (xls *Excel) Get(sheetName string, start, end string) ([][]any, error) {
 				break
 			}
 
-			// 尝试根据单元格类型转换数据
 			cellID := MakeCellID(x, y)
 			cellType, _ := xls.excel.GetCellType(sheet, cellID)
 			
@@ -140,9 +170,6 @@ func (xls *Excel) Get(sheetName string, start, end string) ([][]any, error) {
 				}
 			case excelize.CellTypeBool:
 				rowData = append(rowData, cast.To[bool](v))
-			case excelize.CellTypeDate:
-				// TODO: 更好的日期处理
-				rowData = append(rowData, v)
 			default:
 				rowData = append(rowData, v)
 			}
@@ -150,53 +177,6 @@ func (xls *Excel) Get(sheetName string, start, end string) ([][]any, error) {
 		result = append(result, rowData)
 	}
 	return result, nil
-}
-
-// RemoveSheet 删除工作表。
-func (xls *Excel) RemoveSheet(sheetName string) error {
-	return xls.excel.DeleteSheet(sheetName)
-}
-
-// Sheets 返回所有工作表名称。
-func (xls *Excel) Sheets() []string {
-	return xls.excel.GetSheetList()
-}
-
-// SetColWidth 设置列宽。
-func (xls *Excel) SetColWidth(sheetName string, startCol, endCol string, width float64) error {
-	return xls.excel.SetColWidth(xls.getOrCreateSheet(sheetName), startCol, endCol, width)
-}
-
-// SetColWidths 批量设置列宽。
-func (xls *Excel) SetColWidths(sheetName string, widths []float64) error {
-	sheet := xls.getOrCreateSheet(sheetName)
-	for i, w := range widths {
-		col := MakeColID(i)
-		if err := xls.excel.SetColWidth(sheet, col, col, w); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// SetCellStyle 设置单元格样式。
-func (xls *Excel) SetCellStyle(sheetName string, start, end string, styleID int) error {
-	return xls.excel.SetCellStyle(xls.getOrCreateSheet(sheetName), start, end, styleID)
-}
-
-// MakeStyle 创建样式并返回样式 ID。
-func (xls *Excel) MakeStyle(style *excelize.Style) (int, error) {
-	return xls.excel.NewStyle(style)
-}
-
-// SetPanes 设置冻结窗格。
-func (xls *Excel) SetPanes(sheetName string, panes *excelize.Panes) error {
-	return xls.excel.SetPanes(xls.getOrCreateSheet(sheetName), panes)
-}
-
-// SetAutoFilter 设置自动筛选。
-func (xls *Excel) SetAutoFilter(sheetName string, start, end string, options []excelize.AutoFilterOptions) error {
-	return xls.excel.AutoFilter(xls.getOrCreateSheet(sheetName), start+":"+end, options)
 }
 
 // SetData 将对象列表写入 Excel。
@@ -227,7 +207,6 @@ func (xls *Excel) SetData(sheetName string, data []map[string]any, start, end st
 				idx = fieldNum
 				fieldIndex[k] = idx
 				fieldNum++
-				// 扩展所有行以匹配新的列数
 				for r := range table {
 					for len(table[r]) < fieldNum {
 						table[r] = append(table[r], "")
@@ -276,22 +255,9 @@ func (xls *Excel) GetData(sheetName string, start, end string) ([]map[string]any
 	return data, nil
 }
 
-// ToJSON 将指定工作表的数据转换为 JSON 字符串。
-func (xls *Excel) ToJSON(sheetName string, start, end string) (string, error) {
-	data, err := xls.GetData(sheetName, start, end)
-	if err != nil {
-		return "", err
-	}
-	return cast.ToJSON(data)
-}
-
-// FromJSON 从 JSON 字符串加载数据到指定工作表。
-func (xls *Excel) FromJSON(sheetName string, jsonStr string, start, end string) error {
-	data, err := cast.FromJSON[[]map[string]any](jsonStr)
-	if err != nil {
-		return err
-	}
-	return xls.SetData(sheetName, data, start, end)
+// Sheets 返回所有工作表名称。
+func (xls *Excel) Sheets() []string {
+	return xls.excel.GetSheetList()
 }
 
 // 辅助方法：获取或创建工作表
@@ -299,12 +265,10 @@ func (xls *Excel) getOrCreateSheet(name string) string {
 	if name == "" {
 		name = "Sheet1"
 	}
-	// 如果是数字索引
 	if matched, _ := regexp.MatchString(`^\d+$`, name); matched {
 		idx := cast.To[int](name)
 		return xls.excel.GetSheetName(idx)
 	}
-	
 	idx, _ := xls.excel.GetSheetIndex(name)
 	if idx == -1 {
 		xls.excel.NewSheet(name)
@@ -312,12 +276,12 @@ func (xls *Excel) getOrCreateSheet(name string) string {
 	return name
 }
 
-// MakeCellID 根据行列索引生成单元格 ID（如 0, 0 -> "A1"）。
+// MakeCellID 生成单元格 ID。
 func MakeCellID(col, row int) string {
 	return MakeColID(col) + strconv.Itoa(row+1)
 }
 
-// MakeColID 根据列索引生成列 ID（如 0 -> "A", 26 -> "AA"）。
+// MakeColID 生成列 ID。
 func MakeColID(col int) string {
 	colName := ""
 	for col >= 0 {
@@ -327,13 +291,11 @@ func MakeColID(col int) string {
 	return colName
 }
 
-// ParseCellID 解析单元格 ID（如 "A1" -> 0, 0）。
+// ParseCellID 解析单元格 ID。
 func ParseCellID(cell string) (col, row int) {
 	if cell == "" {
 		return 0, 0
 	}
-	
-	// 找到第一个数字的位置
 	numIdx := -1
 	for i, r := range cell {
 		if r >= '0' && r <= '9' {
@@ -341,15 +303,12 @@ func ParseCellID(cell string) (col, row int) {
 			break
 		}
 	}
-
 	if numIdx == -1 {
-		// 只有字母，当做列处理
 		return parseCol(cell), 0
 	}
-
 	col = parseCol(cell[:numIdx])
 	row, _ = strconv.Atoi(cell[numIdx:])
-	row-- // 转为 0 索引
+	row--
 	if row < 0 {
 		row = 0
 	}

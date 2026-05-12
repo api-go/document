@@ -1,57 +1,76 @@
 # office
 
-极简、高效的 Go Office 文档处理库，符合 `@go` 设计哲学。支持将 Office 文档与 JSON/Markdown 等通用格式无缝转换，作为 AI 时代的数据桥梁。
+极简、高效的 Go Office 文档处理桥梁，符合 `@go` 设计哲学。
 
-## 特性
+## 核心设计
 
-- **统一 API**: 提供极简的 `Open`, `Save`, `ToJSON`, `ToMarkdown` 等操作。
-- **载体转换**: 
-  - **Excel <-> JSON**: 自动将表格映射为对象数组，支持双向转换。
-  - **Docx/Pptx/PDF -> Markdown**: 提取并转化为 AI 友好的 Markdown 格式。
-- **纯 Go 实现**: 无 CGo 依赖，极致的跨平台与部署性能。
-- **Excel 增强**: 自动处理工作表对齐，支持动态列扩展。
+`office` 包将所有复杂的文档格式（Excel, Word, PPT, PDF）抽象为统一的 `Document` 接口。你只需要关心 **数据载体** (JSON/Markdown)，而不需要关心底层实现。
 
-## 快速开始
+- **结构化数据 (Excel)** <-> **JSON**
+- **半结构化内容 (Word/PPT/PDF)** -> **Markdown**
 
-### 安装
-
-```bash
-go get apigo.cc/go/office
-```
-
-### Excel <-> JSON (结构化数据载体)
+## 统一 API
 
 ```go
-// Excel 转 JSON
-xls, _ := office.Open("data.xlsx")
-jsonStr, _ := xls.ToJSON("Sheet1", "A1", "")
+import "apigo.cc/go/office"
 
-// JSON 转 Excel
-newXls := office.New()
-newXls.FromJSON("Sheet1", jsonStr, "A1", "")
-newXls.Save("restored.xlsx")
+// 1. 打开文档 (自动识别类型)
+doc, _ := office.Open("data.xlsx")
+
+// 2. 转换为通用载体
+jsonStr := doc.ToJSON()    // 适合 Excel
+mdStr := doc.ToMarkdown() // 适合 Word/PPT/PDF
+
+// 3. 修改并保存 (Excel 支持数据回写)
+// (对于 Excel，你可以强制断言获取更多方法)
+if xls, ok := doc.(*office.Excel); ok {
+    xls.SetData("Sheet1", newData, "A1", "")
+}
+doc.Save("updated.xlsx")
 ```
 
-### Docx/Pptx/PDF -> Markdown (内容载体)
+## 支持格式
+
+| 格式 | 后缀 | `ToJSON` 表现 | `ToMarkdown` 表现 | `Save` 行为 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Excel** | `.xlsx` | 返回第一个 Sheet 的对象数组 | 返回第一个 Sheet 的 MD 表格 | 保存为 Excel 文件 |
+| **Word** | `.docx` | 返回 `{"metadata":..., "content":...}` | 返回提取的全文文本 | 保存为纯文本文件 |
+| **PPT** | `.pptx` | 返回 `{"metadata":..., "content":...}` | 返回提取的全文文本 | 保存为纯文本文件 |
+| **PDF** | `.pdf` | 返回 `{"metadata":..., "content":...}` | 返回提取的全文文本 | 保存为纯文本文件 |
+
+## 快速示例
+
+### AI 友好型转换
 
 ```go
-// Word 转 Markdown
-doc, _ := office.OpenDocx("contract.docx")
-md, _ := doc.ToMarkdown()
+// 一行代码将 PDF 转为 AI 易读的 Markdown
+md, _ := office.Open("report.pdf").ToMarkdown()
 
-// PDF 转 Markdown
-pdf, _ := office.OpenPDF("report.pdf")
-md, _ := pdf.ToMarkdown()
+// 一行代码将 Excel 转为结构化 JSON
+json, _ := office.Open("sales.xlsx").ToJSON()
+```
+
+### 极简读写 (Excel)
+
+```go
+xls, _ := office.OpenExcel("config.xlsx")
+data, _ := xls.GetData("Sheet1", "A1", "")
+// ... 修改 data
+xls.SetData("Sheet1", data, "A1", "")
+xls.Save()
 ```
 
 ## API 参考
 
-### Excel (JSON 转换)
-- `ToJSON(sheetName string, start, end string) (string, error)`
-- `FromJSON(sheetName string, jsonStr string, start, end string) error`
-- `GetData(sheetName string, start, end string) ([]map[string]any, error)`
-- `SetData(sheetName string, data []map[string]any, start, end string) error`
+### 顶级函数
+- `Open(filename string, password ...string) (Document, error)`
+- `Create(ext string) (Document, error)`
 
-### Word/PPT/PDF (Markdown 提取)
-- `ToMarkdown() (string, error)`: 将文档内容提取为 Markdown 格式字符串。
-- `Text() (string, error)`: 提取纯文本。
+### Document 接口
+- `ToJSON() string`
+- `ToMarkdown() string`
+- `Save(filename ...string) error`
+
+### 类型特定 (导出)
+- `Excel`: 支持 `SetData`, `GetData`, `Sheets` 等。
+- `Docx`, `Pptx`, `PDF`: 支持 `Content` 和 `Metadata` 直接访问。

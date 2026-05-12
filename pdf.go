@@ -6,13 +6,16 @@ import (
 	"os"
 	"strings"
 
+	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
 	"github.com/dslipak/pdf"
 )
 
-// PDF 封装了 PDF 文档的读取操作。
+// PDF 封装了 PDF 文档的读取与识别。
 type PDF struct {
 	filename string
+	Content  string
+	Metadata map[string]any
 }
 
 // OpenPDF 打开一个 PDF 文档。
@@ -20,57 +23,54 @@ func OpenPDF(filename string) (*PDF, error) {
 	if !file.Exists(filename) {
 		return nil, os.ErrNotExist
 	}
-	return &PDF{filename: filename}, nil
-}
-
-// Text 提取 PDF 中的所有文本。
-func (p *PDF) Text() (string, error) {
-	f, err := pdf.Open(p.filename)
-	if err != nil {
-		return "", err
+	p := &PDF{
+		filename: filename,
+		Metadata: make(map[string]any),
 	}
 	
-	var b bytes.Buffer
-	t, err := f.GetPlainText()
-	if err != nil {
-		return "", err
-	}
-	
-	_, err = io.Copy(&b, t)
-	if err != nil {
-		return "", err
-	}
-	
-	return b.String(), nil
-}
-
-// ToMarkdown 将 PDF 内容转换为 Markdown 格式。
-func (p *PDF) ToMarkdown() (string, error) {
-	text, err := p.Text()
-	if err != nil {
-		return "", err
-	}
-	return text, nil
-}
-
-// Info 获取 PDF 的元数据。
-func (p *PDF) Info() map[string]any {
-	f, err := pdf.Open(p.filename)
-	if err != nil {
-		return nil
-	}
-	
-	info := make(map[string]any)
-	trailer := f.Trailer()
-	infoDict := trailer.Key("Info")
-	if !infoDict.IsNull() {
-		for _, field := range infoDict.Keys() {
-			val := infoDict.Key(field).Text()
-			if val != "" {
-				info[strings.ToLower(field)] = val
+	f, err := pdf.Open(filename)
+	if err == nil {
+		p.Metadata["pages"] = f.NumPage()
+		trailer := f.Trailer()
+		infoDict := trailer.Key("Info")
+		if !infoDict.IsNull() {
+			for _, field := range infoDict.Keys() {
+				val := infoDict.Key(field).Text()
+				if val != "" {
+					p.Metadata[strings.ToLower(field)] = val
+				}
 			}
 		}
+		
+		var b bytes.Buffer
+		if t, err := f.GetPlainText(); err == nil {
+			io.Copy(&b, t)
+			p.Content = b.String()
+		}
 	}
-	info["pages"] = f.NumPage()
-	return info
+	
+	return p, nil
+}
+
+// ToJSON 返回结构化 JSON。
+func (p *PDF) ToJSON() string {
+	res, _ := cast.ToJSON(map[string]any{
+		"metadata": p.Metadata,
+		"content":  p.Content,
+	})
+	return res
+}
+
+// ToMarkdown 返回 Markdown。
+func (p *PDF) ToMarkdown() string {
+	return p.Content
+}
+
+// Save 保存（目前保存为提取后的文本）。
+func (p *PDF) Save(filename ...string) error {
+	path := p.filename
+	if len(filename) > 0 && filename[0] != "" {
+		path = filename[0]
+	}
+	return file.Write(path, p.Content)
 }

@@ -4,13 +4,16 @@ import (
 	"io"
 	"os"
 
+	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
 	"github.com/young2j/oxmltotext/pptxtotext"
 )
 
-// Pptx 封装了 PowerPoint 文档的读取操作。
+// Pptx 封装了 PowerPoint 文档的读取与识别。
 type Pptx struct {
 	filename string
+	Content  string
+	Metadata map[string]any
 }
 
 // OpenPptx 打开一个 PowerPoint 文档 (.pptx)。
@@ -18,18 +21,41 @@ func OpenPptx(filename string) (*Pptx, error) {
 	if !file.Exists(filename) {
 		return nil, os.ErrNotExist
 	}
-	return &Pptx{filename: filename}, nil
+	p := &Pptx{
+		filename: filename,
+		Metadata: make(map[string]any),
+	}
+	
+	pp, err := pptxtotext.Open(filename)
+	if err == nil {
+		defer pp.Close()
+		p.Content, _ = pp.ExtractTexts()
+	}
+	
+	return p, nil
 }
 
-// Text 提取文档中的所有文本。
-func (p *Pptx) Text() (string, error) {
-	pp, err := pptxtotext.Open(p.filename)
-	if err != nil {
-		return "", err
-	}
-	defer pp.Close()
+// ToJSON 返回结构化 JSON。
+func (p *Pptx) ToJSON() string {
+	res, _ := cast.ToJSON(map[string]any{
+		"metadata": p.Metadata,
+		"content":  p.Content,
+	})
+	return res
+}
 
-	return pp.ExtractTexts()
+// ToMarkdown 返回 Markdown。
+func (p *Pptx) ToMarkdown() string {
+	return p.Content
+}
+
+// Save 保存文档（目前保存为提取后的文本）。
+func (p *Pptx) Save(filename ...string) error {
+	path := p.filename
+	if len(filename) > 0 && filename[0] != "" {
+		path = filename[0]
+	}
+	return file.Write(path, p.Content)
 }
 
 // ReadText 从 io.Reader 中读取并提取 PPT 文本。
@@ -41,13 +67,4 @@ func (p *Pptx) ReadText(r io.ReaderAt, size int64) (string, error) {
 	defer pp.Close()
 
 	return pp.ExtractTexts()
-}
-
-// ToMarkdown 将 PowerPoint 文档内容转换为 Markdown 格式。
-func (p *Pptx) ToMarkdown() (string, error) {
-	text, err := p.Text()
-	if err != nil {
-		return "", err
-	}
-	return text, nil
 }

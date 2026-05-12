@@ -1,6 +1,7 @@
 package office
 
 import (
+	"strings"
 	"testing"
 
 	"apigo.cc/go/file"
@@ -10,7 +11,7 @@ func TestExcel_Basic(t *testing.T) {
 	filename := "test_basic.xlsx"
 	defer file.Remove(filename)
 
-	xls := New()
+	xls := NewExcel()
 	table := [][]any{
 		{"Name", "Age", "City"},
 		{"Alice", 25, "New York"},
@@ -27,10 +28,11 @@ func TestExcel_Basic(t *testing.T) {
 		t.Fatalf("Save failed: %v", err)
 	}
 
-	xls2, err := Open(filename)
+	doc2, err := Open(filename)
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
+	xls2 := doc2.(*Excel)
 
 	data, err := xls2.Get("Sheet1", "A1", "C3")
 	if err != nil {
@@ -50,7 +52,7 @@ func TestExcel_Data(t *testing.T) {
 	filename := "test_data.xlsx"
 	defer file.Remove(filename)
 
-	xls := New()
+	xls := NewExcel()
 	data := []map[string]any{
 		{"ID": 1, "Value": "A"},
 		{"ID": 2, "Value": "B"},
@@ -66,10 +68,11 @@ func TestExcel_Data(t *testing.T) {
 		t.Fatalf("Save failed: %v", err)
 	}
 
-	xls2, err := Open(filename)
+	doc2, err := Open(filename)
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
+	xls2 := doc2.(*Excel)
 
 	readData, err := xls2.GetData("Data", "A1", "")
 	if err != nil {
@@ -82,6 +85,37 @@ func TestExcel_Data(t *testing.T) {
 
 	if castTo[string](readData[0]["Value"]) != "A" {
 		t.Errorf("Expected A, got %v", readData[0]["Value"])
+	}
+}
+
+func TestUnifiedAPI(t *testing.T) {
+	// Test Excel with Unified API
+	filename := "test_unified.xlsx"
+	defer file.Remove(filename)
+
+	doc, err := Open(filename)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+
+	if xls, ok := doc.(*Excel); ok {
+		xls.SetData("Sheet1", []map[string]any{{"Name": "Unified", "Value": 100}}, "A1", "")
+	}
+
+	err = doc.Save()
+	if err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	// Verify JSON/Markdown
+	jsonStr := doc.ToJSON()
+	if !strings.Contains(jsonStr, "Unified") {
+		t.Errorf("ToJSON failed: %s", jsonStr)
+	}
+
+	mdStr := doc.ToMarkdown()
+	if !strings.Contains(mdStr, "Unified") {
+		t.Errorf("ToMarkdown failed: %s", mdStr)
 	}
 }
 
