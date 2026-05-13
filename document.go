@@ -28,6 +28,8 @@ func Open(filename string, password ...string) (Document, error) {
 		return OpenPptx(filename)
 	case ".pdf":
 		return OpenPDF(filename)
+	case ".graph":
+		return OpenGraph(filename)
 	default:
 		return nil, fmt.Errorf("unsupported file type: %s", ext)
 	}
@@ -42,6 +44,8 @@ func Create(ext string) (Document, error) {
 	case "docx":
 		// TODO: 支持创建 Word
 		return nil, fmt.Errorf("creating docx not supported yet")
+	case "graph":
+		return NewGraph(), nil
 	default:
 		return nil, fmt.Errorf("unsupported creation type: %s", ext)
 	}

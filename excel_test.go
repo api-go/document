@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
 )
 
@@ -43,7 +44,7 @@ func TestExcel_Basic(t *testing.T) {
 		t.Errorf("Unexpected data length: %v", data)
 	}
 
-	if castTo[string](data[1][0]) != "Alice" {
+	if cast.To[string](data[1][0]) != "Alice" {
 		t.Errorf("Expected Alice, got %v", data[1][0])
 	}
 }
@@ -83,7 +84,7 @@ func TestExcel_Data(t *testing.T) {
 		t.Errorf("Expected 2 rows, got %d", len(readData))
 	}
 
-	if castTo[string](readData[0]["Value"]) != "A" {
+	if cast.To[string](readData[0]["Value"]) != "A" {
 		t.Errorf("Expected A, got %v", readData[0]["Value"])
 	}
 }
@@ -155,12 +156,4 @@ func BenchmarkExcel_SetData(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = xls.SetData("Bench", data, "A1", "")
 	}
-}
-
-func castTo[T any](v any) T {
-	var res T
-	if val, ok := v.(T); ok {
-		return val
-	}
-	return res
 }
