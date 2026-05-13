@@ -72,35 +72,46 @@ func (xls *Excel) ToJSON() string {
 	return res
 }
 
-// ToMarkdown 将第一个工作表的数据转换为 Markdown 表格。
+// ToMarkdown 将所有工作表的数据转换为 Markdown 格式。
 func (xls *Excel) ToMarkdown() string {
 	sheets := xls.Sheets()
 	if len(sheets) == 0 {
 		return ""
 	}
-	rows, _ := xls.Get(sheets[0], "A1", "")
-	if len(rows) == 0 {
-		return ""
-	}
 
 	var sb strings.Builder
-	for i, row := range rows {
-		sb.WriteString("| ")
-		for _, col := range row {
-			sb.WriteString(cast.To[string](col))
-			sb.WriteString(" | ")
+	for _, sheetName := range sheets {
+		rows, _ := xls.Get(sheetName, "A1", "")
+		if len(rows) == 0 {
+			continue
 		}
-		sb.WriteString("\n")
-		if i == 0 {
-			// 分隔线
-			sb.WriteString("|")
-			for range row {
-				sb.WriteString(" --- |")
+
+		if len(sheets) > 1 {
+			sb.WriteString("## Sheet: " + sheetName + "\n\n")
+		}
+
+		for i, row := range rows {
+			sb.WriteString("| ")
+			for _, col := range row {
+				val := cast.To[string](col)
+				// 转义 Markdown 表格中的管道符
+				val = strings.ReplaceAll(val, "|", "\\|")
+				sb.WriteString(val)
+				sb.WriteString(" | ")
 			}
 			sb.WriteString("\n")
+			if i == 0 {
+				// 分隔线
+				sb.WriteString("|")
+				for range row {
+					sb.WriteString(" --- |")
+				}
+				sb.WriteString("\n")
+			}
 		}
+		sb.WriteString("\n")
 	}
-	return sb.String()
+	return strings.TrimSpace(sb.String())
 }
 
 // --- 基础操作方法 ---

@@ -1,9 +1,7 @@
 package document
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"strings"
 
 	"apigo.cc/go/cast"
@@ -42,11 +40,24 @@ func OpenPDF(filename string) (*PDF, error) {
 			}
 		}
 		
-		var b bytes.Buffer
-		if t, err := f.GetPlainText(); err == nil {
-			io.Copy(&b, t)
-			p.Content = b.String()
+		var sb strings.Builder
+		for i := 1; i <= f.NumPage(); i++ {
+			p_ := f.Page(i)
+			if p_.V.IsNull() {
+				continue
+			}
+			t := p_.Content().Text
+			if len(t) > 0 {
+				if i > 1 {
+					sb.WriteString("\n\n")
+				}
+				sb.WriteString(fmt.Sprintf("<!-- Page %d -->\n", i))
+				for _, text := range t {
+					sb.WriteString(text.S)
+				}
+			}
 		}
+		p.Content = strings.TrimSpace(sb.String())
 	}
 	
 	return p, nil

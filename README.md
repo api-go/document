@@ -33,11 +33,14 @@ doc.Save("updated.xlsx")
 
 | 格式 | 后缀 | `ToJSON` 表现 | `ToMarkdown` 表现 | `Save` 行为 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Excel** | `.xlsx` | 返回第一个 Sheet 的对象数组 | 返回第一个 Sheet 的 MD 表格 | 保存为 Excel 文件 |
+| **Excel** | `.xlsx` | 返回第一个 Sheet 的对象数组 | 返回**所有 Sheet** 的 MD 表格 | 保存为 Excel |
 | **Word** | `.docx` | 返回 `{"metadata":..., "content":...}` | 返回**带层级标题**的 Markdown | 保存为文本 |
 | **PPT** | `.pptx` | 返回 `{"metadata":..., "content":...}` | 返回提取的全文文本 | 保存为文本 |
-| **PDF** | `.pdf` | 返回 `{"metadata":..., "content":...}` | 返回提取的全文文本 | 保存为文本 |
+| **PDF** | `.pdf` | 返回 `{"metadata":..., "content":...}` | 返回**带页码标记**的 Markdown | 保存为文本 |
 | **Graph** | `.graph` | 返回节点与关系的结构化 JSON | 返回 **Mermaid 关系图** + 节点详情 | 保存为 JSON |
+| **CSV** | `.csv` | 返回对象数组 | 返回 MD 表格 | 保存为 CSV |
+| **Markdown**| `.md` | 返回 `{"content":...}` | 返回原始文本 | 保存为 Markdown |
+| **Text** | `.txt` | 返回 `{"content":...}` | 返回原始文本 | 保存为文本 |
 
 ## 快速示例
 

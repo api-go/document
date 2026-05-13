@@ -7,6 +7,9 @@
 - [x] **ID 生成解析**: 验证 `MakeCellID` 和 `ParseCellID` 的准确性。
 - [x] **Docx 标题识别**: 通过 XML 提取带 `#` 的层级 Markdown。
 - [x] **Graph 关系文档**: 验证 `Node` 增删、`ToMarkdown` (Mermaid) 及 `Save/Open`。
+- [x] **CSV/Markdown 支持**: 验证 CSV 转对象/表格，Markdown 文件的统一接口读写。
+- [x] **多 Sheet Excel**: 验证 `ToMarkdown` 导出所有工作表。
+- [x] **PDF 页码标记**: 验证提取内容中包含页码注释。
 
 ## 性能测试 (Benchmark)
 - **环境**: Darwin / Apple M3 Max

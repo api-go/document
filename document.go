@@ -30,6 +30,10 @@ func Open(filename string, password ...string) (Document, error) {
 		return OpenPDF(filename)
 	case ".graph":
 		return OpenGraph(filename)
+	case ".csv":
+		return OpenCSV(filename)
+	case ".md", ".markdown", ".txt":
+		return OpenMarkdown(filename)
 	default:
 		return nil, fmt.Errorf("unsupported file type: %s", ext)
 	}
@@ -46,6 +50,10 @@ func Create(ext string) (Document, error) {
 		return nil, fmt.Errorf("creating docx not supported yet")
 	case "graph":
 		return NewGraph(), nil
+	case "csv":
+		return &CSV{}, nil
+	case "md", "markdown":
+		return &Markdown{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported creation type: %s", ext)
 	}
