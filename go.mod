@@ -3,7 +3,7 @@ module apigo.cc/go/document
 go 1.25.0
 
 require (
-	apigo.cc/go/cast v1.3.1
+	apigo.cc/go/cast v1.3.2
 	apigo.cc/go/file v1.3.1
 	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
