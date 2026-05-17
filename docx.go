@@ -45,7 +45,7 @@ func OpenDocx(filename string) (*Docx, error) {
 	return d, nil
 }
 
-// extractMarkdown 尝试从 docx 的 XML 中提取带标题的 Markdown。
+// extractMarkdown 尝试从 docx 的 XML 中提取带标题和表格的 Markdown。
 func (d *Docx) extractMarkdown(filename string) (string, error) {
 	r, err := zip.OpenReader(filename)
 	if err != nil {
@@ -69,6 +69,10 @@ func (d *Docx) extractMarkdown(filename string) (string, error) {
 	var sb strings.Builder
 	var inT bool
 	var currentStyle string
+	var inTable bool
+	var tableRows [][]string
+	var currentRow []string
+	var cellText strings.Builder
 
 	for {
 		t, err := decoder.Token()
@@ -81,29 +85,56 @@ func (d *Docx) extractMarkdown(filename string) (string, error) {
 
 		switch se := t.(type) {
 		case xml.StartElement:
-			if se.Name.Local == "p" {
+			switch se.Name.Local {
+			case "p":
 				currentStyle = ""
-			} else if se.Name.Local == "pStyle" {
+				cellText.Reset()
+			case "pStyle":
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "val" {
 						currentStyle = attr.Value
 					}
 				}
-			} else if se.Name.Local == "t" {
+			case "t":
 				inT = true
+			case "tbl":
+				inTable = true
+				tableRows = nil
+			case "tr":
+				currentRow = nil
+			case "tc":
+				cellText.Reset()
 			}
 		case xml.EndElement:
-			if se.Name.Local == "p" {
-				sb.WriteString("\n")
-			} else if se.Name.Local == "t" {
+			switch se.Name.Local {
+			case "p":
+				if inTable {
+					// Paragraph inside table cell is handled by cellEnd
+				} else {
+					sb.WriteString("\n")
+				}
+			case "t":
 				inT = false
+			case "tc":
+				currentRow = append(currentRow, strings.TrimSpace(cellText.String()))
+				cellText.Reset()
+			case "tr":
+				tableRows = append(tableRows, currentRow)
+			case "tbl":
+				inTable = false
+				sb.WriteString(renderMarkdownTable(tableRows))
+				sb.WriteString("\n")
 			}
 		case xml.CharData:
-			if inT {
-				text := string(se)
-				if strings.Contains(strings.ToLower(currentStyle), "heading") {
+			text := string(se)
+			if inTable {
+				cellText.WriteString(text)
+			} else if inT {
+				if strings.Contains(strings.ToLower(currentStyle), "heading") || 
+				   strings.Contains(strings.ToLower(currentStyle), "title") ||
+				   strings.Contains(strings.ToLower(currentStyle), "subject") {
 					level := "1"
-					if len(currentStyle) > 7 {
+					if strings.Contains(strings.ToLower(currentStyle), "heading") && len(currentStyle) > 7 {
 						level = currentStyle[7:]
 					}
 					l := cast.To[int](level)
@@ -120,6 +151,30 @@ func (d *Docx) extractMarkdown(filename string) (string, error) {
 	}
 
 	return strings.TrimSpace(sb.String()), nil
+}
+
+func renderMarkdownTable(rows [][]string) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString("\n")
+	for i, row := range rows {
+		sb.WriteString("| ")
+		for _, col := range row {
+			sb.WriteString(strings.ReplaceAll(col, "|", "\\|"))
+			sb.WriteString(" | ")
+		}
+		sb.WriteString("\n")
+		if i == 0 {
+			sb.WriteString("|")
+			for range row {
+				sb.WriteString(" --- |")
+			}
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
 }
 
 // ToJSON 返回包含元数据和内容的 JSON 字符串。

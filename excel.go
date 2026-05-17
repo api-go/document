@@ -87,7 +87,7 @@ func (xls *Excel) ToMarkdown() string {
 		}
 
 		if len(sheets) > 1 {
-			sb.WriteString("## Sheet: " + sheetName + "\n\n")
+			sb.WriteString("# Sheet: " + sheetName + "\n\n")
 		}
 
 		for i, row := range rows {

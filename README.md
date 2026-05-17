@@ -72,6 +72,37 @@ mdStr := g.ToMarkdown() // 包含 Mermaid graph TD 的渲染内容
 - `ToMarkdown() string`
 - `Save(filename ...string) error`
 
+## 命令行工具 (doc)
+
+`document` 包内置了一个强大的命令行工具 `doc`，位于 `cmd/doc` 目录下。
+
+### 安装
+使用 `go install` 安装，生成的二进制文件名即为 `doc`：
+```bash
+go install apigo.cc/go/document/cmd/doc@latest
+```
+
+### 常用命令
+```bash
+# 1. 预览 Excel/Word/PDF 内容 (默认输出 Markdown)
+doc report.xlsx
+
+# 2. 将文档转为结构化 JSON (适合 RAG 或自动化脚本)
+doc manual.docx --json
+
+# 3. 提取 PDF 内容并保存为 Markdown 文件
+doc paper.pdf -o paper.md
+
+# 4. 向已有的 Excel 注入数据 (支持追加或覆盖)
+doc --data '[{"id":1,"name":"Alice"}]' -o test.xlsx test.xlsx
+
+# 5. 查看文档元数据 (如工作表名、PDF 页数等)
+doc paper.pdf --inspect
+```
+
+### 帮助信息
+运行 `doc --help` 查看完整参数说明。
+
 ### Graph 专用 (关系型文档)
 - `AddNode(n *Node)`
 - `OpenGraph(filename string) (*Graph, error)`

@@ -3,6 +3,7 @@ package document
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"apigo.cc/go/cast"
 	"apigo.cc/go/file"
@@ -46,7 +47,41 @@ func (p *Pptx) ToJSON() string {
 
 // ToMarkdown 返回 Markdown。
 func (p *Pptx) ToMarkdown() string {
-	return p.Content
+	if p.Content == "" {
+		return ""
+	}
+	
+	lines := strings.Split(p.Content, "\n")
+	var res []string
+	nextIsMainTitle := true
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		
+		// 检查幻灯片分隔符
+		if strings.Contains(line, "--------------------------------") {
+			res = append(res, "\n---")
+			nextIsMainTitle = true
+			continue
+		}
+		
+		// 启发式识别标题：行短、无句末标点
+		if len([]rune(trimmed)) < 50 && !strings.HasSuffix(trimmed, ".") && !strings.HasSuffix(trimmed, "。") && !strings.HasSuffix(trimmed, ":") && !strings.HasSuffix(trimmed, "：") {
+			if nextIsMainTitle {
+				res = append(res, "\n# "+trimmed)
+				nextIsMainTitle = false
+			} else {
+				res = append(res, "\n## "+trimmed)
+			}
+		} else {
+			res = append(res, trimmed)
+			// 如果该页已经有了主标题，后续的长文本不会重置标题状态
+		}
+	}
+	return strings.TrimSpace(strings.Join(res, "\n"))
 }
 
 // Save 保存文档（目前保存为提取后的文本）。
