@@ -44,7 +44,15 @@ func OpenPDF(filename string) (*PDF, error) {
 		}
 	}
 
-	var sb strings.Builder
+	// 收集所有页面的 block
+	type Block struct {
+		Type     string
+		Level    int
+		Text     string
+		FontSize float64
+	}
+	var allBlocks []Block
+
 	for i := 1; i <= f.NumPage(); i++ {
 		page := f.Page(i)
 		if page.V.IsNull() {
@@ -57,219 +65,194 @@ func OpenPDF(filename string) (*PDF, error) {
 			continue
 		}
 
-		// 处理页面内容
-		sb.WriteString(p.processPageTexts(texts))
-	}
-	p.Content = strings.TrimSpace(sb.String())
-
-	return p, nil
-}
-
-func (p *PDF) processPageTexts(texts []pdf.Text) string {
-	if len(texts) == 0 {
-		return ""
-	}
-
-	// 1. 估算正文字体大小（众数）
-	fontSizes := make(map[int]int)
-	for _, t := range texts {
-		fontSizes[int(t.FontSize)]++
-	}
-	bodySize := 0
-	maxCount := 0
-	for size, count := range fontSizes {
-		if count > maxCount {
-			maxCount = count
-			bodySize = size
+		// 1. 估算正文字体大小（众数）
+		fontSizes := make(map[int]int)
+		for _, t := range texts {
+			fontSizes[int(t.FontSize)]++
 		}
-	}
-
-	// 2. 按行分组（基于 Y 坐标）
-	type Line struct {
-		Y           float64
-		MaxFontSize float64
-		Text        string
-		Texts       []pdf.Text
-	}
-	var lines []Line
-	for _, t := range texts {
-		found := false
-		for i := range lines {
-			if t.Y > lines[i].Y-2 && t.Y < lines[i].Y+2 {
-				lines[i].Texts = append(lines[i].Texts, t)
-				found = true
-				break
+		bodySize := 0
+		maxCount := 0
+		for size, count := range fontSizes {
+			if count > maxCount {
+				maxCount = count
+				bodySize = size
 			}
 		}
-		if !found {
-			lines = append(lines, Line{Y: t.Y, Texts: []pdf.Text{t}})
+
+		// 2. 按行分组（基于 Y 坐标）
+		type Line struct {
+			Y           float64
+			MaxFontSize float64
+			Text        string
+			Texts       []pdf.Text
 		}
-	}
-
-	// 按 Y 降序排列（从上到下）
-	sort.Slice(lines, func(i, j int) bool {
-		return lines[i].Y > lines[j].Y
-	})
-
-	// 预处理每一行的文本和最大字体
-	for i := range lines {
-		sort.Slice(lines[i].Texts, func(m, n int) bool {
-			return lines[i].Texts[m].X < lines[i].Texts[n].X
-		})
-		var sb strings.Builder
-		maxFS := 0.0
-		for _, t := range lines[i].Texts {
-			sb.WriteString(t.S)
-			if t.FontSize > maxFS {
-				maxFS = t.FontSize
-			}
-		}
-		lines[i].Text = strings.TrimSpace(sb.String())
-		lines[i].MaxFontSize = maxFS
-	}
-
-	// 3. 语义块识别
-	type Block struct {
-		Type     string // heading, paragraph, table
-		Level    int    // for heading
-		Text     string
-		FontSize float64
-	}
-	var blocks []Block
-	for i := 0; i < len(lines); i++ {
-		line := lines[i]
-		if line.Text == "" {
-			continue
-		}
-
-		// 表格识别逻辑
-		isTableLine, cells := p.identifyTableLine(line)
-		if isTableLine {
-			tableStr := "| " + strings.Join(cells, " | ") + " |"
-			blocks = append(blocks, Block{Type: "table", Text: tableStr})
-			continue
-		}
-
-		// 标题识别逻辑 (比正文大)
-		if line.MaxFontSize > float64(bodySize)+1 {
-			level := 1
-			if line.MaxFontSize < float64(bodySize)+4 {
-				level = 3
-			} else if line.MaxFontSize < float64(bodySize)+8 {
-				level = 2
-			}
-
-			// 合并紧随其后的同字体行（处理跨行标题）
-			fullText := line.Text
-			lastY := line.Y
-			for j := i + 1; j < len(lines); j++ {
-				if lines[j].Text != "" && MathAbs(lines[j].MaxFontSize-line.MaxFontSize) < 1.0 {
-					if MathAbs(lines[j].Y-lastY) < 25 {
-						fullText += " " + lines[j].Text
-						lastY = lines[j].Y
-						i = j
-					} else {
-						break
-					}
-				} else {
+		var lines []Line
+		for _, t := range texts {
+			found := false
+			for i := range lines {
+				if t.Y > lines[i].Y-2 && t.Y < lines[i].Y+2 {
+					lines[i].Texts = append(lines[i].Texts, t)
+					found = true
 					break
 				}
 			}
+			if !found {
+				lines = append(lines, Line{Y: t.Y, Texts: []pdf.Text{t}})
+			}
+		}
 
-			// 检查是否重复
-			if i < 5 {
-				if title, ok := p.Metadata["title"].(string); ok && strings.Contains(title, fullText) {
-					continue
+		sort.Slice(lines, func(i, j int) bool {
+			return lines[i].Y > lines[j].Y
+		})
+
+		for i := range lines {
+			sort.Slice(lines[i].Texts, func(m, n int) bool {
+				return lines[i].Texts[m].X < lines[i].Texts[n].X
+			})
+			var sb strings.Builder
+			maxFS := 0.0
+			for _, t := range lines[i].Texts {
+				sb.WriteString(t.S)
+				if t.FontSize > maxFS {
+					maxFS = t.FontSize
 				}
 			}
+			lines[i].Text = strings.TrimSpace(sb.String())
+			lines[i].MaxFontSize = maxFS
+		}
 
-			// 合并同级标题
-			if len(blocks) > 0 && blocks[len(blocks)-1].Type == "heading" && blocks[len(blocks)-1].Level == level {
-				blocks[len(blocks)-1].Text += " " + fullText
-			} else {
-				blocks = append(blocks, Block{Type: "heading", Level: level, Text: fullText})
-			}
-		} else {
-			// 跳过页码
-			if (line.Y < 50 || line.Y > 800) && isPageNumber(line.Text) {
+		// 3. 语义块识别
+		for j := 0; j < len(lines); j++ {
+			line := lines[j]
+			if line.Text == "" {
 				continue
 			}
 
-			// 段落识别
-			fullText := line.Text
-			lastY := line.Y
-			for j := i + 1; j < len(lines); j++ {
-				if lines[j].Text != "" && lines[j].MaxFontSize <= float64(bodySize)+1 {
-					isT, _ := p.identifyTableLine(lines[j])
-					if isT {
-						break
-					}
-					if (lines[j].Y < 50 || lines[j].Y > 800) && isPageNumber(lines[j].Text) {
-						break
-					}
-					if MathAbs(lines[j].Y-lastY) > 25 {
-						break
-					}
-
-					fullText += lines[j].Text
-					lastY = lines[j].Y
-					i = j
-
-					if isPunctuation(lines[j].Text) {
-						break
-					}
-				} else {
-					break
-				}
+			isTableLine, cells := p.identifyTableLine(line)
+			if isTableLine {
+				tableStr := "| " + strings.Join(cells, " | ") + " |"
+				allBlocks = append(allBlocks, Block{Type: "table", Text: tableStr})
+				continue
 			}
-			blocks = append(blocks, Block{Type: "paragraph", Text: fullText})
+
+			if line.MaxFontSize > float64(bodySize)+1 {
+				level := 1
+				if line.MaxFontSize < float64(bodySize)+4 {
+					level = 3
+				} else if line.MaxFontSize < float64(bodySize)+8 {
+					level = 2
+				}
+
+				fullText := line.Text
+				lastY := line.Y
+				for k := j + 1; k < len(lines); k++ {
+					if lines[k].Text != "" && MathAbs(lines[k].MaxFontSize-line.MaxFontSize) < 1.0 {
+						if MathAbs(lines[k].Y-lastY) < 25 {
+							fullText += " " + lines[k].Text
+							lastY = lines[k].Y
+							j = k
+						} else {
+							break
+						}
+					} else {
+						break
+					}
+				}
+
+				if j < 5 && i == 1 {
+					if title, ok := p.Metadata["title"].(string); ok && strings.Contains(title, fullText) {
+						continue
+					}
+				}
+
+				if len(allBlocks) > 0 && allBlocks[len(allBlocks)-1].Type == "heading" && allBlocks[len(allBlocks)-1].Level == level {
+					allBlocks[len(allBlocks)-1].Text += " " + fullText
+				} else {
+					allBlocks = append(allBlocks, Block{Type: "heading", Level: level, Text: fullText})
+				}
+			} else {
+				if (line.Y < 50 || line.Y > 800) && isPageNumber(line.Text) {
+					continue
+				}
+
+				fullText := line.Text
+				lastY := line.Y
+				for k := j + 1; k < len(lines); k++ {
+					if lines[k].Text != "" && lines[k].MaxFontSize <= float64(bodySize)+1 {
+						isT, _ := p.identifyTableLine(lines[k])
+						if isT {
+							break
+						}
+						if (lines[k].Y < 50 || lines[k].Y > 800) && isPageNumber(lines[k].Text) {
+							break
+						}
+						if MathAbs(lines[k].Y-lastY) > 25 {
+							break
+						}
+
+						fullText += lines[k].Text
+						lastY = lines[k].Y
+						j = k
+
+						if isPunctuation(lines[k].Text) {
+							break
+						}
+					} else {
+						break
+					}
+				}
+				allBlocks = append(allBlocks, Block{Type: "paragraph", Text: fullText})
+			}
 		}
 	}
 
-	// 4. 智能封面/标题逻辑
-	// 策略：
-	// 1. 第一个 Heading 始终是文档标题 (#)
-	// 2. 在遇到第一个明确的“章节标题”或“正文段落”之前，中间的 Heading 如果很长，则转为正文文本。
-	// 3. 统计 H1，如果只有一个 H1，则尝试将 H2 提升为 H1。
-	
+	// 4. 智能封面/标题逻辑 (全局)
 	h1Count := 0
-	for _, b := range blocks {
+	for _, b := range allBlocks {
 		if b.Type == "heading" && b.Level == 1 {
 			h1Count++
 		}
 	}
 	shouldPromote := h1Count <= 1
 
-	firstHeadingFound := false
 	contentStarted := false
+	hasMetadataTitle := false
+	if t, ok := p.Metadata["title"].(string); ok && t != "" {
+		hasMetadataTitle = true
+	}
 
-	var res strings.Builder
-	for _, b := range blocks {
+	firstHeadingProcessed := false
+
+	var sb strings.Builder
+	for _, b := range allBlocks {
 		if b.Type == "heading" {
 			level := b.Level
 			
 			if !contentStarted {
-				if !firstHeadingFound {
-					// 文档总标题
-					res.WriteString("\n# " + b.Text + "\n\n")
-					firstHeadingFound = true
-					continue
+				if !firstHeadingProcessed {
+					firstHeadingProcessed = true
+					// 如果有 Metadata Title，则 Metadata Title 充当了真正的第一级标题
+					// 我们把遇到的第一个大标题降级为正文文本（除非它已经是标准章节）
+					if hasMetadataTitle && !isStandardSection(b.Text) {
+						sb.WriteString("\n" + b.Text + "\n\n")
+						continue
+					} else {
+						// 否则作为文档的主标题
+						sb.WriteString("\n# " + b.Text + "\n\n")
+						continue
+					}
 				} else {
-					// 封面期间的其他标题
-					// 如果是已知的章节名，则认为内容开始了
 					if isStandardSection(b.Text) {
 						contentStarted = true
-						// 章节名也应该是 #
-						res.WriteString("\n# " + b.Text + "\n\n")
+						sb.WriteString("\n# " + b.Text + "\n\n")
 						continue
 					}
 					// 否则作为封面副标题/文本
-					res.WriteString(b.Text + "\n\n")
+					sb.WriteString(b.Text + "\n\n")
 					continue
 				}
 			}
 
-			// 内容已经开始
 			if shouldPromote {
 				if level == 2 {
 					level = 1
@@ -277,17 +260,18 @@ func (p *PDF) processPageTexts(texts []pdf.Text) string {
 					level = 2
 				}
 			}
-			res.WriteString("\n" + strings.Repeat("#", level) + " " + b.Text + "\n\n")
+			sb.WriteString("\n" + strings.Repeat("#", level) + " " + b.Text + "\n\n")
 		} else if b.Type == "paragraph" {
-			contentStarted = true // 遇到第一个正文段落，标志着封面/标题期结束
-			res.WriteString(b.Text + "\n\n")
+			contentStarted = true
+			sb.WriteString(b.Text + "\n\n")
 		} else if b.Type == "table" {
 			contentStarted = true
-			res.WriteString(b.Text + "\n")
+			sb.WriteString(b.Text + "\n")
 		}
 	}
 
-	return res.String()
+	p.Content = strings.TrimSpace(sb.String())
+	return p, nil
 }
 
 func isStandardSection(s string) bool {
