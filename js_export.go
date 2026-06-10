@@ -9,28 +9,33 @@ import (
 
 func init() {
 	jsmod.Register("document", map[string]any{
-		"open": func(ctx context.Context, filename string, password ...string) (*jsDocument, error) {
+		"Open": func(ctx context.Context, filename string, password *string) (*jsDocument, error) {
 			p, err := file.VerifyPathForSafeMode(ctx, filename)
 			if err != nil {
 				return nil, err
 			}
-			doc, err := Open(p, password...)
+			var doc Document
+			if password != nil {
+				doc, err = Open(p, *password)
+			} else {
+				doc, err = Open(p)
+			}
 			if err != nil {
 				return nil, err
 			}
 			return &jsDocument{ctx: ctx, d: doc}, nil
 		},
-		"create": func(ctx context.Context, ext string) (*jsDocument, error) {
+		"Create": func(ctx context.Context, ext string) (*jsDocument, error) {
 			doc, err := Create(ext)
 			if err != nil {
 				return nil, err
 			}
 			return &jsDocument{ctx: ctx, d: doc}, nil
 		},
-		"newExcel": func(ctx context.Context) *jsDocument {
+		"NewExcel": func(ctx context.Context) *jsDocument {
 			return &jsDocument{ctx: ctx, d: NewExcel()}
 		},
-		"newGraph": func(ctx context.Context) *jsDocument {
+		"NewGraph": func(ctx context.Context) *jsDocument {
 			return &jsDocument{ctx: ctx, d: NewGraph()}
 		},
 	})
@@ -44,10 +49,10 @@ type jsDocument struct {
 func (j *jsDocument) ToJSON() string     { return j.d.ToJSON() }
 func (j *jsDocument) ToMarkdown() string { return j.d.ToMarkdown() }
 
-func (j *jsDocument) Save(filename ...string) error {
+func (j *jsDocument) Save(filename *string) error {
 	var targetPath string
-	if len(filename) > 0 {
-		p, err := file.VerifyPathForSafeMode(j.ctx, filename[0])
+	if filename != nil && *filename != "" {
+		p, err := file.VerifyPathForSafeMode(j.ctx, *filename)
 		if err != nil {
 			return err
 		}
