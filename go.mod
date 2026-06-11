@@ -1,10 +1,11 @@
 module apigo.cc/go/document
 
 go 1.25.0
+
 require (
 	apigo.cc/go/cast v1.5.2
 	apigo.cc/go/file v1.5.4
-	apigo.cc/go/jsmod v1.5.3
+	apigo.cc/go/jsmod v1.5.2
 	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
 	github.com/young2j/oxmltotext v1.0.3
@@ -15,7 +16,6 @@ require (
 	apigo.cc/go/rand v1.5.2
 	apigo.cc/go/safe v1.5.1
 	github.com/andybalholm/brotli v1.0.5 // indirect
-...
 	github.com/dgrr/quickxml v0.0.0-20201022091424-4977de546d6c // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/otiai10/gosseract/v2 v2.4.1 // indirect
