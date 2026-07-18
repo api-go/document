@@ -12,9 +12,9 @@ require (
 )
 
 require (
-	apigo.cc/go/encoding v1.5.4
-	apigo.cc/go/rand v1.5.3
-	apigo.cc/go/safe v1.5.2
+	apigo.cc/go/encoding v1.5.4 // indirect
+	apigo.cc/go/rand v1.5.3 // indirect
+	apigo.cc/go/safe v1.5.2 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/dgrr/quickxml v0.0.0-20201022091424-4977de546d6c // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
