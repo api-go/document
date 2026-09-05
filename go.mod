@@ -3,8 +3,8 @@ module apigo.cc/go/document
 go 1.25.0
 
 require (
-	apigo.cc/go/cast v1.5.6
-	apigo.cc/go/file v1.5.8
+	apigo.cc/go/cast v1.5.7
+	apigo.cc/go/file v1.5.9
 	apigo.cc/go/jsmod v1.5.4
 	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	apigo.cc/go/encoding v1.5.7 // indirect
+	apigo.cc/go/encoding v1.5.8 // indirect
 	apigo.cc/go/rand v1.5.4 // indirect
 	apigo.cc/go/safe v1.5.4 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
