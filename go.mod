@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	apigo.cc/go/cast v1.5.6
-	apigo.cc/go/file v1.5.7
+	apigo.cc/go/file v1.5.8
 	apigo.cc/go/jsmod v1.5.4
 	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
