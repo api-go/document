@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.5.9 (2026-09-18)
+- DOCX 转 Markdown 现在按正文关系解析 DrawingML/VML 内嵌图片；`ToMarkdownWithAssets` 返回轻量 `doc-asset://` 引用与独立二进制资产，`ToMarkdown` 保持自包含 data URL 兼容输出。
+- **依赖更新**: 升级 `cast` 至 `v1.5.8`。
+
 ## v1.5.7 (2026-09-05)
 - **依赖对齐**: 升级 `file` 至 `v1.5.8`。
 

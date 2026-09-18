@@ -16,6 +16,21 @@ type Document interface {
 	Save(filename ...string) error
 }
 
+// Asset is a binary resource referenced by converted Markdown.
+type Asset struct {
+	Name        string
+	ContentType string
+	Alt         string
+	Data        []byte
+}
+
+// AssetDocument exposes Markdown with lightweight doc-asset references and
+// the corresponding binary resources. ToMarkdown remains self-contained for
+// callers that do not provide external asset storage.
+type AssetDocument interface {
+	ToMarkdownWithAssets() (string, []Asset)
+}
+
 // Open 根据文件后缀名自动打开文档并返回标准接口。
 func Open(filename string, password ...string) (Document, error) {
 	ext := strings.ToLower(filepath.Ext(filename))

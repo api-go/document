@@ -3,7 +3,7 @@ module apigo.cc/go/document
 go 1.25.0
 
 require (
-	apigo.cc/go/cast v1.5.7
+	apigo.cc/go/cast v1.5.8
 	apigo.cc/go/file v1.5.9
 	apigo.cc/go/jsmod v1.5.4
 	github.com/dslipak/pdf v0.0.2

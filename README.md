@@ -70,6 +70,7 @@ mdStr := g.ToMarkdown() // 包含 Mermaid graph TD 的渲染内容
 ### Document 接口
 - `ToJSON() string`
 - `ToMarkdown() string`
+- DOCX additionally implements `AssetDocument.ToMarkdownWithAssets()`, returning Markdown with `doc-asset://<name>` references plus typed binary assets for external versioned storage.
 - `Save(filename ...string) error`
 
 ## 命令行工具 (doc)
