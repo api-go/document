@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 	"github.com/xuri/excelize/v2"
 )
 

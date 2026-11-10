@@ -3,8 +3,8 @@ package document
 import (
 	"context"
 
-	"apigo.cc/go/file"
-	"apigo.cc/go/jsmod"
+	"github.com/api-go/file"
+	"github.com/api-go/jsmod"
 )
 
 func init() {

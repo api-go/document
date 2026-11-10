@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 	"github.com/dslipak/pdf"
 )
 

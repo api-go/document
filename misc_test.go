@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"apigo.cc/go/file"
+	"github.com/api-go/file"
 )
 
 func TestCSV(t *testing.T) {

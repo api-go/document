@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 )
 
 func TestExcel_Basic(t *testing.T) {

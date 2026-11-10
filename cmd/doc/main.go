@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/document"
+	"github.com/api-go/cast"
+	"github.com/api-go/document"
 )
 
 var (

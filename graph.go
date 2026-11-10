@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 )
 
 // Node 代表文档中的一个节点，可以是一个场景、一个角色或一个知识点。

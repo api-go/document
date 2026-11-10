@@ -3,8 +3,8 @@ package document
 import (
 	"fmt"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 )
 
 // Markdown 封装了纯 Markdown 文档的读写，使其符合 Document 接口。

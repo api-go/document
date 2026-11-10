@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 	"github.com/young2j/oxmltotext/docxtotext"
 )
 

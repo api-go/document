@@ -13,7 +13,7 @@
 ## 统一 API
 
 ```go
-import "apigo.cc/go/document"
+import "github.com/api-go/document"
 
 // 1. 打开文档 (自动识别类型)
 doc, _ := document.Open("data.xlsx")
@@ -80,7 +80,7 @@ mdStr := g.ToMarkdown() // 包含 Mermaid graph TD 的渲染内容
 ### 安装
 使用 `go install` 安装，生成的二进制文件名即为 `doc`：
 ```bash
-go install apigo.cc/go/document/cmd/doc@latest
+go install github.com/api-go/document/cmd/doc@latest
 ```
 
 ### 常用命令

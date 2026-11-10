@@ -4,8 +4,8 @@ import (
 	"encoding/csv"
 	"strings"
 
-	"apigo.cc/go/cast"
-	"apigo.cc/go/file"
+	"github.com/api-go/cast"
+	"github.com/api-go/file"
 )
 
 // CSV 封装了 CSV 文件的读写。
