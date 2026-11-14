@@ -107,3 +107,7 @@ doc paper.pdf --inspect
 ### Graph 专用 (关系型文档)
 - `AddNode(n *Node)`
 - `OpenGraph(filename string) (*Graph, error)`
+
+v1.5.11: dependency alignment with safe v1.5.6 / crypto v1.5.11. Development uses explicit local replacements; remove before release. Public API unchanged.
+
+Release v1.5.11: verified with published dependencies and GOWORK=off; all temporary replacements have been removed. Earlier development-validation notes describe historical local checks.

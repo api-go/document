@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/api-go/cast v1.5.9
-	github.com/api-go/file v1.5.10
+	github.com/api-go/file v1.5.11
 	github.com/api-go/jsmod v1.5.6
 	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
@@ -15,7 +15,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/api-go/encoding v1.5.9 // indirect
 	github.com/api-go/rand v1.5.5 // indirect
-	github.com/api-go/safe v1.5.5 // indirect
+	github.com/api-go/safe v1.5.6 // indirect
 	github.com/dgrr/quickxml v0.0.0-20201022091424-4977de546d6c // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/otiai10/gosseract/v2 v2.4.1 // indirect
